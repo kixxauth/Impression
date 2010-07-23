@@ -10,8 +10,11 @@
 , immed: true
 , strict: true
 */
+
 /*global window:false */
+
 "use strict";
+
 (function (window) {
   var jq = window.jQuery
 
@@ -28,36 +31,18 @@
       }())
     ;
 
-  function Presentation(spec) {
+  function Presentation(child_nodes, spec) {
     if (!(this instanceof Presentation)) {
-      return new Presentation(spec);
+      return new Presentation(child_nodes, spec);
     }
 
     var self = this
-      , collection = spec.collection
       , intervals = spec.intervals || {}
-      , default_interval = spec.defaultInterval
+      , default_interval = spec.defaultInterval || 1000
       ;
 
-    if (collection.length === 0) {
-      throw 'A presentation needs at least 1 selected element.';
-    }
-    if (collection.length === 1) {
-      this.root = collection;
-      this.collection = collection.children(spec.selector).hide();
-    }
-    else {
-      this.root = collection.parent();
-      this.collection = collection.hide();
-    }
-
-    this.id = this.root.attr('id');
-    if (!this.id) {
-      this.root.attr('id', (this.id = generate_id()));
-    }
-
     this.slides = [];
-    this.collection.each(function () {
+    child_nodes.each(function () {
       var me = jq(this);
       self.slides.push({
           jq      : me
@@ -70,7 +55,7 @@
     this.stopped = true;
     this.elapsed = 0;
     this.start_time = 0;
-    this.auto_loop = spec.autoLoop;
+    this.auto_loop = !!spec.autoLoop;
   }
 
   Presentation.prototype = {};
@@ -79,10 +64,11 @@
     if (this.timeout === null && !this.stopped) {
       var self = this, slide = this.slides[this.current_index];
       this.start_time = new Date().getTime();
-      setTimeout(function () {
+      this.timeout = setTimeout(function () {
         self.advance();
       }, duration);
-      slide.jq.trigger('impressPlaying', [duration, slide.interval]);
+      slide.jq.trigger('impressPlaying',
+          [this.current_index, duration, slide.interval]);
     }
   };
 
@@ -92,7 +78,8 @@
       clearTimeout(this.timeout);
       this.timeout = null;
       this.elapsed = (new Date().getTime()) - this.start_time;
-      slide.jq.trigger('impressStopped', [this.elapsed, slide.interval]);
+      slide.jq.trigger('impressStopped',
+          [this.current_index, this.elapsed, slide.interval]);
     }
   };
 
@@ -126,6 +113,7 @@
     if (!slide) {
       return;
     }
+    this.slides[this.current_index].jq.show();
     this.stopped = false;
     this.set_timer(slide.interval - this.elapsed);
   };
@@ -138,21 +126,52 @@
     this.stopped = true;
   };
 
-  function exec_method(id, method) {
+  function exec_method(collection, method) {
+    if (collection.length === 0) {
+      throw 'A presentation needs at least 1 selected element.';
+    }
+    var id = (collection.length === 1 ?
+              collection[0].id : collection.parent()[0].id);
+    switch (method) {
+    case 'play':
+      presentations[id].play();
+      break;
+    case 'stop':
+      presentations[id].stop();
+      break;
+    case 'goto':
+      presentations[id].goto.call(presentations[id]
+                                , Array.prototype.slice.call(arguments, 2));
+      break;
+    }
   }
 
   // `spec.defaultInterval`
   // `spec.intervals`
   // `spec.autoLoop`
+  // `spec.selector`
   jq.fn.impression = function (spec) {
     if (typeof spec === 'string') {
-      exec_method(this[0].id, spec);
+      exec_method(this, spec);
       return this;
     }
 
-    spec.collection = this;
-    var presentation = Presentation(spec);
-    presentations[presentation.id] = presentation;
+    if (this.length === 0) {
+      throw 'A jQuery.Impression presentation needs 1 selected element.';
+    }
+
+    spec = spec || {};
+    var parent_node = jq(this[0])
+      , children = parent_node.children(spec.selector).hide()
+      , id = parent_node.attr('id')
+      ;
+
+    if (!id) {
+      parent_node.attr('id', (id = generate_id()));
+    }
+
+    presentations[id] = Presentation(children, spec);
     return this;
   };
 }(window));
+
