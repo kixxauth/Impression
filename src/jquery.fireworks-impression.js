@@ -105,6 +105,14 @@
     this.goto(index);
   };
 
+  Presentation.prototype.back = function () {
+    var index = this.current_index -1;
+    if (index < 0) {
+      return;
+    }
+    this.goto(index);
+  };
+
   Presentation.prototype.play = function () {
     if (!this.stopped) {
       return;
@@ -139,9 +147,11 @@
     case 'stop':
       presentations[id].stop();
       break;
-    case 'goto':
-      presentations[id].goto.call(presentations[id]
-                                , Array.prototype.slice.call(arguments, 2));
+    case 'next':
+      presentations[id].advance();
+      break;
+    case 'back':
+      presentations[id].back();
       break;
     }
   }
