@@ -93,8 +93,11 @@
     }
     this.cancel_timer();
     this.slides[this.current_index].jq.hide();
-    slide.jq.show();
     this.current_index = index;
+    slide.jq
+      .show()
+      .trigger('impressShowing', [this.current_index])
+      ;
     this.elapsed = 0;
     if (index === (this.slides.length -1) && !this.auto_loop) {
       this.stop();
@@ -121,13 +124,8 @@
     if (!this.stopped) {
       return;
     }
-    var slide = this.slides[this.current_index];
-    if (!slide) {
-      return;
-    }
-    this.slides[this.current_index].jq.show();
     this.stopped = false;
-    this.set_timer(slide.interval - this.elapsed);
+    this.goto(this.current_index);
   };
 
   Presentation.prototype.stop = function () {
