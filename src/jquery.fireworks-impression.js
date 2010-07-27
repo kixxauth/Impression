@@ -96,15 +96,16 @@
     slide.jq.show();
     this.current_index = index;
     this.elapsed = 0;
+    if (index === (this.slides.length -1) && !this.auto_loop) {
+      this.stop();
+      return;
+    }
     this.set_timer(slide.interval);
   };
 
   Presentation.prototype.advance = function () {
     var index = this.current_index +1;
     index = index === this.slides.length ? 0 : index;
-    if (index === 0 && !this.auto_loop) {
-      return;
-    }
     this.goto(index);
   };
 
