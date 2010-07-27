@@ -38,15 +38,18 @@
 
     var self = this
       , intervals = spec.intervals || {}
+      , intervals_array = jq.isArray(intervals)
       , default_interval = spec.defaultInterval || 1000
       ;
 
     this.slides = [];
-    child_nodes.each(function () {
+    child_nodes.each(function (i) {
       var me = jq(this);
       self.slides.push({
           jq      : me
-        , interval: intervals[me[0].id] || default_interval
+        , interval: (intervals_array ?
+                     intervals[i] : intervals[this.id]) ||
+                     default_interval
         });
     });
 
